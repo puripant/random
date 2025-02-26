@@ -1,4 +1,4 @@
-# A simple randomization tool
+# Randomizer: a simple randomization tool
 
 This code is generated from the following prompts in ChatGPT in early 2025.
 - I want a simple webapp to find randomize a set of texts
