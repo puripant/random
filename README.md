@@ -17,3 +17,8 @@ This code is generated from the following prompts in ChatGPT in early 2025.
 - can you change it to a simple web app without React
 
 The result was satisfying but still lacking. A major bug was that the webapp did not really pick a random choice; the first option was always removed. Also the original styling and code formatting left a room for improvement.
+
+## TODO
+- Add a mode to hide the contents of all options for choosing instead of randomizing
+  - Click or mouseover to reveal the content of each option
+  - Add different sets of emojis to name the options
