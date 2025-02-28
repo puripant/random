@@ -22,3 +22,4 @@ The result was satisfying but still lacking. A major bug was that the webapp did
 - Add a mode to hide the contents of all options for choosing instead of randomizing
   - Click or mouseover to reveal the content of each option
   - Add different sets of emojis to name the options
+  - Set layout in tiles
