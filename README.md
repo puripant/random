@@ -18,8 +18,4 @@ This code is generated from the following prompts in ChatGPT in early 2025.
 
 The result was satisfying but still lacking. A major bug was that the webapp did not really pick a random choice; the first option was always removed. Also the original styling and code formatting left a room for improvement.
 
-## TODO
-- Add a mode to hide the contents of all options for choosing instead of randomizing
-  - Click or mouseover to reveal the content of each option
-  - Add different sets of emojis to name the options
-  - Set layout in tiles
+Later I did some updates with Copilot Free (Claude) in 2026 to add a popup and another mode of choosing tiles instead.
