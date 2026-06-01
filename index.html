@@ -22,12 +22,33 @@
         input, button {
             font-size: 1em;
         }
+        .title-with-toggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1em;
+        }
+        #modeToggle {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 0;
+        }
+        #modeToggle:hover {
+            transform: scale(1.2);
+        }
         #list { 
             list-style: none;
             width: 100%;
             max-width: 800px;
             margin: 1em auto;
             padding: 0;
+            display: none;
+        }
+        #list.active {
+            display: block;
         }
         .listItem {
             display: flex;
@@ -43,6 +64,77 @@
         }
         .highlight { 
             background: gold; 
+        }
+        #cardContainer {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            margin: 1em auto;
+            padding: 2em 1em;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5em;
+            justify-items: center;
+        }
+        #cardContainer.active {
+            display: grid;
+        }
+        .card {
+            width: 150px;
+            height: 210px;
+            perspective: 1000px;
+            cursor: pointer;
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+            padding: 1em;
+            box-sizing: border-box;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .card-front {
+            background: #e8e8e8;
+            color: #333;
+            font-size: 4em;
+        }
+        .card-back {
+            background: gold;
+            color: #333;
+            transform: rotateY(180deg);
+            word-wrap: break-word;
+            border: 1px solid #ddd;
+        }
+        .card.revealed {
+            border: 4px solid black;
+            border-radius: 15px;
+        }
+        #clearCardsBtn {
+            display: none;
+        }
+        #clearCardsBtn.active {
+            display: inline-block;
         }
         #popup {
             display: none;
@@ -118,13 +210,18 @@
     </style>
 </head>
 <body>
-    <h2>Randomizer 🎲</h2>
+    <div class="title-with-toggle">
+        <h2>Randomizer</h2>
+        <button id="modeToggle" onclick="toggleMode()">🎲</button>
+    </div>
     <div id="input">
         <input type="text" id="textInput" placeholder="Enter text">
         <button onclick="add()">➕</button>
-        <button onclick="randomize()">🎲</button>
+        <button id="randomizeListBtn" onclick="randomize()">🎲</button>
+        <button id="clearCardsBtn" onclick="clearAllCards()">🗑️</button>
     </div>
-    <ul id="list"></ul>
+    <ul id="list" class="active"></ul>
+    <div id="cardContainer"></div>
     
     <div id="popup">
         <div id="popupContent">
@@ -138,6 +235,14 @@
         const textInput = document.getElementById("textInput");
         const popup = document.getElementById("popup");
         const popupText = document.getElementById("popupText");
+        const cardContainer = document.getElementById("cardContainer");
+        const modeToggle = document.getElementById("modeToggle");
+        const randomizeListBtn = document.getElementById("randomizeListBtn");
+        const clearCardsBtn = document.getElementById("clearCardsBtn");
+        
+        let isCardMode = false;
+        let cardValues = []; // Array of card values in current order
+        let lastRevealedCardIndex = null;
         
         textInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
@@ -145,22 +250,106 @@
             }
         });
         
+        function toggleMode() {
+            isCardMode = !isCardMode;
+            modeToggle.textContent = isCardMode ? "🃏" : "🎲";
+            list.classList.toggle("active");
+            cardContainer.classList.toggle("active");
+            randomizeListBtn.style.display = isCardMode ? "none" : "inline-block";
+            clearCardsBtn.classList.toggle("active");
+            
+            // Clear all items when switching modes
+            list.innerHTML = "";
+            cardContainer.innerHTML = "";
+            cardValues = [];
+            lastRevealedCardIndex = null;
+        }
+        
         function add() {
             const text = textInput.value.trim();
             if (!text) return;
 
-            const li = document.createElement("li");
-            li.className = "listItem";
-            li.innerHTML = `${text} <button onclick="remove(this.parentElement)">❌</button>`;
-            list.appendChild(li);
+            if (isCardMode) {
+                addCard(text);
+            } else {
+                addListItem(text);
+            }
 
             textInput.value = "";
         }
         
-        function remove(li) {
+        function addListItem(text) {
+            const li = document.createElement("li");
+            li.className = "listItem";
+            li.innerHTML = `${text} <button onclick="removeListItem(this.parentElement)">❌</button>`;
+            list.appendChild(li);
+        }
+        
+        function addCard(text) {
+            cardValues.push(text);
+            shuffleCards();
+        }
+        
+        function shuffleCards() {
+            // Fisher-Yates shuffle
+            for (let i = cardValues.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cardValues[i], cardValues[j]] = [cardValues[j], cardValues[i]];
+            }
+            renderCards();
+        }
+        
+        function renderCards() {
+            cardContainer.innerHTML = "";
+            cardValues.forEach((value, index) => {
+                const card = document.createElement("div");
+                card.className = "card";
+                card.dataset.value = value;
+                card.dataset.index = index;
+                if (lastRevealedCardIndex === index) {
+                    card.classList.add("revealed");
+                }
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-face card-front">🃏</div>
+                        <div class="card-face card-back"></div>
+                    </div>
+                `;
+                
+                card.addEventListener("click", function(e) {
+                    if (this.classList.contains("flipped")) {
+                        return; // Prevent flipping back
+                    }
+                    this.classList.add("flipped");
+                    this.querySelector(".card-back").textContent = this.dataset.value;
+                    lastRevealedCardIndex = parseInt(this.dataset.index);
+                    updateCardBorders();
+                    showCardRevealFanfare(this.dataset.value);
+                });
+                
+                cardContainer.appendChild(card);
+            });
+        }
+        
+        function updateCardBorders() {
+            document.querySelectorAll(".card").forEach(card => {
+                card.classList.remove("revealed");
+                if (parseInt(card.dataset.index) === lastRevealedCardIndex) {
+                    card.classList.add("revealed");
+                }
+            });
+        }
+        
+        function removeListItem(li) {
             li.style.transform = "translateY(-20px)";
             li.style.opacity = "0";
             setTimeout(() => li.remove(), 500);
+        }
+        
+        function clearAllCards() {
+            cardContainer.innerHTML = "";
+            cardValues = [];
+            lastRevealedCardIndex = null;
         }
         
         function createConfetti() {
@@ -213,46 +402,8 @@
             cycle();
         }
         
-        function randomizeAgain() {
-            popup.classList.remove("show");
-            
-            setTimeout(() => {
-                const items = document.querySelectorAll(".listItem");
-                if (items.length === 0) {
-                    return;
-                }
-                
-                items.forEach(item => item.classList.remove("highlight"));
-                
-                let index = 0;
-                let iterations = items.length * 5 + Math.floor(Math.random() * items.length);
-                let speed = 50;
-                const finalIndex = Math.floor(Math.random() * items.length);
-                
-                function cycle() {
-                    items.forEach(item => item.classList.remove("highlight"));
-                    items[index].classList.add("highlight");
-                    if (iterations-- > 0) {
-                        speed = Math.min(200, speed + 10);
-                        setTimeout(cycle, speed);
-                        index = (index + 1) % items.length;
-                    } else {
-                        const selectedItem = items[finalIndex];
-                        const selectedText = selectedItem.textContent.trim().replace("❌", "").trim();
-                        showPopup(selectedText, selectedItem);
-                    }
-                }
-                cycle();
-            }, 100);
-        }
-        
-        function showPopup(text, itemElement) {
-            popupText.textContent = text;
-            const items = document.querySelectorAll(".listItem");
-            items.forEach(item => item.classList.remove("highlight"));
-            popup.classList.add("show");
+        function showCardRevealFanfare(text) {
             createConfetti();
-            remove(itemElement);
         }
         
         popup.addEventListener("click", function(e) {
@@ -260,6 +411,15 @@
                 popup.classList.remove("show");
             }
         });
+        
+        function showPopup(text, itemElement) {
+            popupText.textContent = text;
+            const items = document.querySelectorAll(".listItem");
+            items.forEach(item => item.classList.remove("highlight"));
+            popup.classList.add("show");
+            createConfetti();
+            removeListItem(itemElement);
+        }
     </script>
 </body>
 </html>
