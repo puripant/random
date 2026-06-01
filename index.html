@@ -44,6 +44,77 @@
         .highlight { 
             background: gold; 
         }
+        #popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        #popup.show {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #popupContent {
+            background: white;
+            border-radius: 20px;
+            padding: 3em;
+            text-align: center;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease-out, bounce 0.6s ease-out;
+            max-width: 80%;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        #popupText {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 0.5em 0;
+            color: #333;
+        }
+        #randomizeBtn {
+            font-size: 2em;
+            padding: 0.5em 1em;
+            margin-top: 1em;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: transform 0.2s;
+        }
+        #randomizeBtn:hover {
+            transform: scale(1.1);
+        }
+        #randomizeBtn:active {
+            transform: scale(0.95);
+        }
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            z-index: 999;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -55,9 +126,18 @@
     </div>
     <ul id="list"></ul>
     
+    <div id="popup">
+        <div id="popupContent">
+            <div id="popupText"></div>
+            <button id="randomizeBtn" onclick="randomizeAgain()">🎲</button>
+        </div>
+    </div>
+    
     <script>
         const list = document.getElementById("list");
         const textInput = document.getElementById("textInput");
+        const popup = document.getElementById("popup");
+        const popupText = document.getElementById("popupText");
         
         textInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
@@ -83,12 +163,39 @@
             setTimeout(() => li.remove(), 500);
         }
         
+        function createConfetti() {
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement("div");
+                confetti.className = "confetti";
+                confetti.style.left = Math.random() * 100 + "%";
+                confetti.style.top = "-10px";
+                confetti.style.background = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA502", "#FFD93D"][Math.floor(Math.random() * 5)];
+                confetti.style.borderRadius = Math.random() > 0.5 ? "50%" : "0";
+                
+                const duration = 2 + Math.random() * 1;
+                const xOffset = (Math.random() - 0.5) * 200;
+                
+                confetti.animate([
+                    { transform: `translateY(0) translateX(0)`, opacity: 1 },
+                    { transform: `translateY(${window.innerHeight}px) translateX(${xOffset}px)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)"
+                });
+                
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), duration * 1000);
+            }
+        }
+        
         function randomize() {
             const items = document.querySelectorAll(".listItem");
             if (items.length === 0) return;
+            
             let index = 0;
             let iterations = items.length * 5 + Math.floor(Math.random() * items.length);
             let speed = 50;
+            const finalIndex = Math.floor(Math.random() * items.length);
             
             function cycle() {
                 items.forEach(item => item.classList.remove("highlight"));
@@ -98,11 +205,61 @@
                     setTimeout(cycle, speed);
                     index = (index + 1) % items.length;
                 } else {
-                    setTimeout(() => remove(items[index]), 500);
+                    const selectedItem = items[finalIndex];
+                    const selectedText = selectedItem.textContent.trim().replace("❌", "").trim();
+                    showPopup(selectedText, selectedItem);
                 }
             }
             cycle();
         }
+        
+        function randomizeAgain() {
+            popup.classList.remove("show");
+            
+            setTimeout(() => {
+                const items = document.querySelectorAll(".listItem");
+                if (items.length === 0) {
+                    return;
+                }
+                
+                items.forEach(item => item.classList.remove("highlight"));
+                
+                let index = 0;
+                let iterations = items.length * 5 + Math.floor(Math.random() * items.length);
+                let speed = 50;
+                const finalIndex = Math.floor(Math.random() * items.length);
+                
+                function cycle() {
+                    items.forEach(item => item.classList.remove("highlight"));
+                    items[index].classList.add("highlight");
+                    if (iterations-- > 0) {
+                        speed = Math.min(200, speed + 10);
+                        setTimeout(cycle, speed);
+                        index = (index + 1) % items.length;
+                    } else {
+                        const selectedItem = items[finalIndex];
+                        const selectedText = selectedItem.textContent.trim().replace("❌", "").trim();
+                        showPopup(selectedText, selectedItem);
+                    }
+                }
+                cycle();
+            }, 100);
+        }
+        
+        function showPopup(text, itemElement) {
+            popupText.textContent = text;
+            const items = document.querySelectorAll(".listItem");
+            items.forEach(item => item.classList.remove("highlight"));
+            popup.classList.add("show");
+            createConfetti();
+            remove(itemElement);
+        }
+        
+        popup.addEventListener("click", function(e) {
+            if (e.target === popup) {
+                popup.classList.remove("show");
+            }
+        });
     </script>
 </body>
 </html>
